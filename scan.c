@@ -17,14 +17,14 @@
 #include <fcntl.h>
 #include <string.h>
 
-#define TEST 0 //TEST = 1 NOTEST = 0
+#define TEST 1 //TEST = 1 NOTEST = 0
 
 int cidr_to_ip_and_mask(const char *, uint32_t *, uint32_t *);
 
 int main( int argc , char *argv[] )
 {
 
-    uint32_t ip, mask, first_ip, finalIP;
+    uint32_t ip, mask, first_ip, final_ip;
     int sock, connect_return, valopt, silent_sw = 0, log_file_sw = 0, fd_log;
     struct sockaddr_in sock_address;
     char *sock_string_address,  *cidr;
@@ -66,14 +66,20 @@ int main( int argc , char *argv[] )
     }
 
     first_ip = ip & mask;
-    finalIP = first_ip | ~mask;
+    final_ip = first_ip | ~mask;
     sock_address.sin_family = AF_INET;
     sock_address.sin_port = htons( 80 );
+
     #if TEST
     printf("Timeout microsec:%d\n", tv.tv_usec);
+    sock_address.sin_addr.s_addr = htonl( first_ip );
+    printf("first_ip:%s\n", inet_ntoa( sock_address.sin_addr ) );
+    sock_address.sin_addr.s_addr = htonl( final_ip );
+    printf("final_ip:%s\n\n", inet_ntoa( sock_address.sin_addr ) );
     #endif
+
     //Start the port scan loop
-    for( uint32_t i = first_ip; i <= finalIP; i++){
+    for( uint32_t i = first_ip; i <= final_ip; i++){
 
         sock_address.sin_addr.s_addr =  htonl( i ); 
         sock_string_address = inet_ntoa( sock_address.sin_addr );
@@ -109,9 +115,12 @@ int main( int argc , char *argv[] )
                 printf("Host is up:%s Reason:%s\n", sock_string_address, strerror( valopt ) );
             if( log_file_sw == 1 )
                 dprintf(fd_log, "Host is up:%s Reason:%s\n", sock_string_address, strerror( valopt ) );
+            close( sock );
         }
     }
     close( fd_log );
+    if( !( silent_sw == 1 ) )
+        printf("\nDone.\n");
     return 0;
 }
 
